@@ -1,0 +1,82 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-bookings
+      author: booking-service
+      changes:
+        - createTable:
+            tableName: bookings
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: resource_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_booking_resource
+                    references: bookable_resources(id)
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_booking_user
+                    references: app_users(id)
+              - column:
+                  name: start_time
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_time
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  # Уникальный индекс — это и есть последняя линия защиты
+                  # от двойной вставки при гонке (см. комментарий в
+                  # BookingRepository.findOverlapping). Даже если два потока
+                  # одновременно прошли pre-check и оба решили, что слот
+                  # свободен, второй INSERT с тем же idempotency_key упадёт
+                  # на уровне БД с constraint violation — это и есть
+                  # source of truth, а не Java-проверка "на глаз".
+                  name: idempotency_key
+                  type: varchar(100)
+                  constraints:
+                    unique: true
+                    uniqueConstraintName: uk_booking_idempotency_key
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_booking_resource_time
+            tableName: bookings
+            columns:
+              - column:
+                  name: resource_id
+              - column:
+                  name: start_time
+              - column:
+                  name: end_time

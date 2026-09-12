@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: booking-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/booking
+    username: booking
+    password: booking
+    hikari:
+      # Пул соединений: дефолт HikariCP — 10, для pet-проекта хватит с запасом,
+      # но именно этот параметр обычно спрашивают про тюнинг под нагрузку.
+      maximum-pool-size: 10
+
+  jpa:
+    hibernate:
+      # ВАЖНО: ddl-auto: validate, а не update/create.
+      # Это частый вопрос "как у тебя устроены миграции в проде".
+      # update в реальном проекте — антипаттерн: Hibernate молча меняет
+      # схему по состоянию Java-кода, без истории изменений, без возможности
+      # отката и код-ревью SQL. Схему полностью ведёт Liquibase (ниже),
+      # а Hibernate на старте только ПРОВЕРЯЕТ (validate), что схема в БД
+      # соответствует entity-классам, и падает, если это не так.
+      ddl-auto: validate
+    open-in-view: false
+    # open-in-view: false — тоже частый вопрос. По умолчанию Spring Boot
+    # держит Hibernate Session открытой на весь HTTP-запрос, включая
+    # рендеринг ответа — это позволяет случайно словить ленивую подгрузку
+    # прямо в контроллере/сериализаторе и получить N+1 "по незнанию".
+    # Выключаем: транзакция и сессия живут строго в границах @Transactional
+    # сервисного метода, что явно и предсказуемо.
+    properties:
+      hibernate:
+        format_sql: true
+        # Кэш второго уровня подключим отдельной итерацией вместе с Redis.
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace

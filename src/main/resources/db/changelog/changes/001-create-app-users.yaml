@@ -1,0 +1,52 @@
+databaseChangeLog:
+  - changeSet:
+      # id+author уникально идентифицируют changeset. ПРАВИЛО: после того как
+      # changeset применён хотя бы в одном окружении (даже локально у коллеги),
+      # его нельзя редактировать — Liquibase хранит checksum в таблице
+      # DATABASECHANGELOG и упадёт с ошибкой при несовпадении. Нужно правки —
+      # новый changeset. Это и есть ответ на вопрос "как откатывать миграции
+      # в команде из нескольких разработчиков".
+      id: 001-create-app-users
+      author: booking-service
+      changes:
+        - createTable:
+            tableName: app_users
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_app_users_email
+              - column:
+                  name: full_name
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: password_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamptz
+                  constraints:
+                    nullable: false
