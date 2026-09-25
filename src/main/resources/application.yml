@@ -1,6 +1,8 @@
 spring:
   application:
     name: booking-service
+  kafka:
+    bootstrap-servers: localhost:9092
 
   datasource:
     url: jdbc:postgresql://localhost:5432/booking

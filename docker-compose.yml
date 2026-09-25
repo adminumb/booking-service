@@ -19,5 +19,48 @@ services:
   # Kafka, Redis и pgAdmin подключим в следующих итерациях —
   # сейчас нам достаточно одной БД, чтобы проверить persistence-слой.
 
+  kafka:
+    # KRaft-режим: Kafka сам себе координатор метаданных, отдельный
+    # Zookeeper не нужен с версии 3.x+ — так сейчас разворачивают Kafka
+    # и в проде, Zookeeper официально в статусе deprecated. Хороший факт
+    # для собеседования, если спросят "а как у вас Kafka развёрнута".
+    image: apache/kafka:3.8.0
+    container_name: booking-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false" # топики создаём явно через
+      # KafkaAdmin/NewTopic бины в коде (см. KafkaTopicConfig) — так тип,
+      # partitions и replication-factor контролируются кодом и код-ревью,
+      # а не создаются "как получится" при первом же publish в новый топик.
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  kafka-ui:
+    # Не обязателен для работы сервиса, но экономит кучу времени на
+    # собеседовании-демо и просто при отладке: смотришь топики, партиции,
+    # содержимое сообщений и DLQ глазами, без kafka-console-consumer.
+    image: provectuslabs/kafka-ui:latest
+    container_name: booking-kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      - kafka
+
 volumes:
   booking-pg-data:

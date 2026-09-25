@@ -1,4 +1,3 @@
-/*
 package com.example.booking.service;
 
 import com.example.booking.domain.AppUser;
@@ -21,7 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,16 +33,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-*/
-/**
- * Чистый unit-тест: все зависимости замоканы, Spring-контекст не поднимается
- * (никакого @SpringBootTest) — это и есть главное преимущество конструкторной
- * инъекции + интерфейса поверх сервиса, про которое сказано в комментарии
- * BookingService. Такие тесты выполняются за миллисекунды и составляют
- * основание тестовой пирамиды; интеграционные тесты на Testcontainers
- * (итерация 5) проверяют то же самое, но уже вместе с реальной БД —
- * их должно быть заметно меньше.
- *//*
+
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceImplTest {
@@ -72,11 +62,11 @@ class BookingServiceImplTest {
         resourceId = UUID.randomUUID();
         userId = UUID.randomUUID();
 
-        resource = BookableResource.builder().name("Room 42").capacity(4).active(true).build();
+        resource = BookableResource.builder().id(resourceId).name("Room 42").capacity(4).active(true).build();
         user = AppUser.builder().email("dev@example.com").build();
 
-        Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
-        Instant end = start.plus(1, ChronoUnit.HOURS);
+        Instant start = Instant.now().plus(Duration.ofDays(1));
+        Instant end = start.plus(Duration.ofHours(1));
         request = new CreateBookingRequest(resourceId, start, end);
     }
 
@@ -103,7 +93,6 @@ class BookingServiceImplTest {
 
     @Test
     void createBooking_throwsConflict_whenOverlappingBookingExists() {
-        when(bookingRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
         when(resourceRepository.findById(resourceId)).thenReturn(Optional.of(resource));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -138,7 +127,6 @@ class BookingServiceImplTest {
 
     @Test
     void createBooking_throwsNotFound_whenResourceDoesNotExist() {
-        when(bookingRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
         when(resourceRepository.findById(resourceId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.createBooking(userId, request, null))
@@ -174,4 +162,4 @@ class BookingServiceImplTest {
         assertThat(result.status()).isEqualTo(BookingStatus.CONFIRMED);
         assertThat(pending.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
     }
-}*/
+}
